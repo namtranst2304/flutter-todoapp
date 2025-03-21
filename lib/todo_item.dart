@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 class TodoItem extends StatelessWidget {
-  final String todoText;       // Văn bản công việc cần làm
-  final VoidCallback onRemove; // Hàm callback để xóa công việc
+  final String todoText;
+  final VoidCallback onRemove;
+  final VoidCallback onEdit;
 
-  const TodoItem({super.key, required this.todoText, required this.onRemove});  // Constructor
+  const TodoItem({super.key, required this.todoText, required this.onRemove, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -12,10 +13,19 @@ class TodoItem extends StatelessWidget {
       title: Text(
         todoText,
         style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-        ),              // Hiển thị văn bản công việc
-      trailing: IconButton(
-        icon: Icon(Icons.check),          // Icon nút check
-        onPressed: onRemove,              // Gọi hàm onRemove khi nhấn nút
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: onEdit,
+          ),
+          IconButton(
+            icon: Icon(Icons.check),
+            onPressed: onRemove,
+          ),
+        ],
       ),
     );
   }

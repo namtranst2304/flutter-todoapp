@@ -1,73 +1,101 @@
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart'; // Thư viện âm thanh
-import 'package:shared_preferences/shared_preferences.dart'; // Thêm SharedPreferences
-import 'todo_item.dart';       // Import widget TodoItem
-import 'completed_item.dart';  // Import widget CompletedItem
+import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'todo_item.dart';
+import 'completed_item.dart';
+import 'dart:ui';
+import 'dart:convert';
 
 class TodoList extends StatefulWidget {
   const TodoList({super.key});
 
   @override
-  _TodoListState createState() => _TodoListState();  // Tạo đối tượng trạng thái _TodoListState
+  TodoListState createState() => TodoListState();
 }
 
-class _TodoListState extends State<TodoList> {
-  final List<String> _todoItems = [];      // Danh sách công việc cần làm
-  final List<String> _completedItems = []; // Danh sách công việc đã hoàn thành
-  
-  // Biến player để phát nhạc
-  final AudioPlayer _player = AudioPlayer();
-  bool _isPlaying = true;  // Mặc định bật nhạc
+class TodoListState extends State<TodoList> {
+  final List<String> _todoItems = [];
+  final List<Map<String, dynamic>> _completedItems = [];
+  late final AudioPlayer _player;
+  bool _isPlaying = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData(); // Tải dữ liệu đã lưu
-    _playMusic(); // Tự động phát nhạc khi khởi động
+    _player = AudioPlayer();
+    _loadData();
+    _playMusic();
   }
 
-  // Hàm tải dữ liệu từ SharedPreferences
   void _loadData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _todoItems.addAll(prefs.getStringList('todoItems') ?? []);
-      _completedItems.addAll(prefs.getStringList('completedItems') ?? []);
-    });
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _todoItems.addAll(prefs.getStringList('todoItems') ?? []);
+        _completedItems.addAll((prefs.getStringList('completedItems') ?? []).map((item) => Map<String, dynamic>.from(jsonDecode(item))).toList());
+      });
+    } catch (e) {
+      // Handle error
+    }
   }
 
-  // Hàm lưu dữ liệu vào SharedPreferences
   void _saveData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('todoItems', _todoItems);
-    await prefs.setStringList('completedItems', _completedItems);
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('todoItems', _todoItems);
+      await prefs.setStringList('completedItems', _completedItems.map((item) => jsonEncode(item)).toList());
+    } catch (e) {
+      // Handle error
+    }
   }
 
-  // Hàm tự động phát nhạc
   void _playMusic() async {
-    await _player.setReleaseMode(ReleaseMode.loop);
-    await _player.play(AssetSource('audio/background.mp3'));
+    try {
+      await _player.setReleaseMode(ReleaseMode.loop);
+      await _player.play(AssetSource('audio/background.mp3'));
+    } catch (e) {
+      // Handle error
+    }
   }
 
-  // Hàm thêm công việc mới
   void _addTodoItem(String task) {
     if (task.isNotEmpty) {
       setState(() {
         _todoItems.add(task);
       });
-      _saveData(); // Lưu lại danh sách sau khi thêm
+      _saveData();
     }
   }
 
-  // Hàm đánh dấu công việc là đã hoàn thành
-  void _removeTodoItem(int index) {
-    setState(() {
-      _completedItems.add(_todoItems[index]);  // Chuyển công việc sang danh sách đã hoàn thành
-      _todoItems.removeAt(index);              // Xóa khỏi danh sách cần làm
-    });
-    _saveData(); // Lưu lại danh sách sau khi cập nhật
+  void _editTodoItem(int index, String newTask) {
+    if (newTask.isNotEmpty) {
+      setState(() {
+        _todoItems[index] = newTask;
+      });
+      _saveData();
+    }
   }
 
-  // Hộp thoại xác nhận hoàn thành công việc
+  void _removeTodoItem(int index) {
+    setState(() {
+      _completedItems.add({
+        'task': _todoItems[index],
+        'completedTime': DateFormat('dd-MM-yyyy HH:mm:ss').format(DateTime.now())
+      });
+      _todoItems.removeAt(index);
+    });
+    _saveData();
+  }
+
+  void _undoCompletedItem(int index) {
+    setState(() {
+      _todoItems.add(_completedItems[index]['task']);
+      _completedItems.removeAt(index);
+    });
+    _saveData();
+  }
+
   void _promptRemoveTodoItem(int index) {
     showDialog(
       context: context,
@@ -92,10 +120,38 @@ class _TodoListState extends State<TodoList> {
     );
   }
 
-  // Hàm bật/tắt nhạc nền
+  void _promptEditTodoItem(int index) {
+    TextEditingController controller = TextEditingController(text: _todoItems[index]);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit "${_todoItems[index]}"'),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(hintText: 'Enter new task'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: Text('Save'),
+              onPressed: () {
+                _editTodoItem(index, controller.text);
+                Navigator.of(context).pop();
+              },
+            )
+          ],
+        );
+      },
+    );
+  }
+
   void _toggleMusic() async {
     if (_isPlaying) {
-      await _player.stop(); // Dừng nhạc
+      await _player.stop();
     } else {
       await _player.setReleaseMode(ReleaseMode.loop);
       await _player.play(AssetSource('audio/background.mp3'));
@@ -105,7 +161,6 @@ class _TodoListState extends State<TodoList> {
     });
   }
 
-  // Màn hình thêm công việc mới
   void _pushAddTodoScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -129,7 +184,6 @@ class _TodoListState extends State<TodoList> {
     );
   }
 
-  // Hàm xây dựng danh sách công việc cần làm
   Widget _buildTodoList() {
     return ListView.builder(
       itemCount: _todoItems.length,
@@ -137,24 +191,26 @@ class _TodoListState extends State<TodoList> {
         return TodoItem(
           todoText: _todoItems[index],
           onRemove: () => _promptRemoveTodoItem(index),
+          onEdit: () => _promptEditTodoItem(index),
         );
       },
     );
   }
 
-  // Hàm xây dựng danh sách công việc đã hoàn thành
   Widget _buildCompletedList() {
     return ListView.builder(
       itemCount: _completedItems.length,
       itemBuilder: (context, index) {
         return CompletedItem(
-          todoText: _completedItems[index],
+          todoText: _completedItems[index]['task'],
+          completedTime: _completedItems[index]['completedTime'],
           onRemove: () {
             setState(() {
-              _completedItems.removeAt(index); // Xóa khỏi danh sách hoàn thành
+              _completedItems.removeAt(index);
             });
-            _saveData(); // Lưu lại sau khi cập nhật
+            _saveData();
           },
+          onUndo: () => _undoCompletedItem(index),
         );
       },
     );
@@ -163,17 +219,26 @@ class _TodoListState extends State<TodoList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'TO DO LIST',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 30,
-            fontWeight: FontWeight.bold,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(60),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: AppBar(
+              title: Text(
+                'TO DO LIST',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              backgroundColor: const Color.fromARGB(255, 110, 119, 221).withAlpha(51),
+              elevation: 0,
+              centerTitle: true,
+            ),
           ),
         ),
-        backgroundColor: const Color.fromARGB(255, 163, 206, 240),
-        centerTitle: true,
       ),
       body: Container(
         decoration: BoxDecoration(
