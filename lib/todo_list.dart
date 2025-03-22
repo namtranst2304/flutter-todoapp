@@ -283,7 +283,7 @@ class TodoListState extends State<TodoList> {
           FloatingActionButton(
             onPressed: _toggleMusic,
             tooltip: 'Toggle Music',
-            child: Icon(_isPlaying ? Icons.music_off : Icons.music_note),
+            child: Icon(_isPlaying ? Icons.music_note : Icons.music_off),
           ),
           SizedBox(width: 16),
           FloatingActionButton(
