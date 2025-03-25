@@ -278,7 +278,11 @@ class TodoListState extends State<TodoList> {
               padding: const EdgeInsets.all(8.0),
               child: Text(
                 'Completed',
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.indigo),
+                style: TextStyle(
+                  fontSize: 30, 
+                  fontWeight: FontWeight.bold, 
+                  color: Colors.indigo
+                ),
               ),
             ),
             Expanded(child: _buildCompletedList()), // Danh sách công việc đã hoàn thành
