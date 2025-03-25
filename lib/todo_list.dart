@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
-import 'todo_item.dart';
-import 'completed_item.dart';
-import 'dart:ui';
-import 'dart:convert';
+import 'package:flutter/material.dart'; // Thư viện Flutter Material Design
+import 'package:audioplayers/audioplayers.dart'; // Thư viện phát nhạc
+import 'package:shared_preferences/shared_preferences.dart'; // Thư viện lưu trữ dữ liệu đơn giản
+import 'package:intl/intl.dart'; // Thư viện định dạng ngày giờ
+import 'todo_item.dart'; // Import file todo_item.dart
+import 'completed_item.dart'; // Import file completed_item.dart
+import 'dart:ui'; // Thư viện giao diện người dùng
+import 'dart:convert'; // Thư viện mã hóa và giải mã JSON
 
 // Widget TodoList kế thừa từ StatefulWidget
 class TodoList extends StatefulWidget {
@@ -64,6 +64,19 @@ class TodoListState extends State<TodoList> {
     }
   }
 
+  // Hàm bật/tắt nhạc nền
+  void _toggleMusic() async {
+    if (_isPlaying) {
+      await _player.stop();
+    } else {
+      await _player.setReleaseMode(ReleaseMode.loop);
+      await _player.play(AssetSource('audio/background.mp3')); //đường dẫn file audio
+    }
+    setState(() {
+      _isPlaying = !_isPlaying;
+    });
+  }
+
   // Hàm thêm công việc mới
   void _addTodoItem(String task) {
     if (task.isNotEmpty) {
@@ -84,7 +97,7 @@ class TodoListState extends State<TodoList> {
     }
   }
 
-  // Hàm xóa công việc
+  // Hàm xóa công việc ở todo list và chuyển sang completed list
   void _removeTodoItem(int index) {
     setState(() {
       _completedItems.add({
@@ -105,7 +118,15 @@ class TodoListState extends State<TodoList> {
     _saveData();
   }
 
-  // Hiển thị hộp thoại xác nhận xóa công việc
+  // Hàm xóa công việc đã hoàn thành - for recovery testing
+  // void _removeCompletedItem(int index) {
+  //   setState(() {
+  //     _completedItems.removeAt(index);
+  //   });
+  //   _saveData();
+  // }
+
+  // Hiển thị hộp thoại xác nhận xóa công việc ở todo list
   void _promptRemoveTodoItem(int index) {
     showDialog(
       context: context,
@@ -158,19 +179,6 @@ class TodoListState extends State<TodoList> {
         );
       },
     );
-  }
-
-  // Hàm bật/tắt nhạc nền
-  void _toggleMusic() async {
-    if (_isPlaying) {
-      await _player.stop();
-    } else {
-      await _player.setReleaseMode(ReleaseMode.loop);
-      await _player.play(AssetSource('audio/background.mp3')); //đường dẫn file audio
-    }
-    setState(() {
-      _isPlaying = !_isPlaying;
-    });
   }
 
   // Hiển thị màn hình thêm công việc mới
@@ -235,10 +243,10 @@ class TodoListState extends State<TodoList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(60),
+        preferredSize: Size.fromHeight(60), // Chiều cao của AppBar
         child: ClipRRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // Hiệu ứng làm mờ
             child: AppBar(
               title: Text(
                 'TO DO LIST',
@@ -248,7 +256,7 @@ class TodoListState extends State<TodoList> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              backgroundColor: const Color.fromARGB(255, 110, 119, 221).withAlpha(51),
+              backgroundColor: const Color.fromARGB(255, 110, 119, 221).withAlpha(51), // Màu nền AppBar
               elevation: 0,
               centerTitle: true,
             ),
@@ -258,14 +266,14 @@ class TodoListState extends State<TodoList> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/background.jpg"),
+            image: AssetImage("assets/background.jpg"), // Hình nền
             fit: BoxFit.cover,
           ),
         ),
         child: Column(
           children: [
             Expanded(child: _buildTodoList()), // Danh sách công việc cần làm
-            Divider(),
+            Divider(), // Đường kẻ phân cách
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
@@ -281,13 +289,13 @@ class TodoListState extends State<TodoList> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
-            onPressed: _toggleMusic,
+            onPressed: _toggleMusic, // Nút bật/tắt nhạc
             tooltip: 'Toggle Music',
             child: Icon(_isPlaying ? Icons.music_note : Icons.music_off),
           ),
           SizedBox(width: 16),
           FloatingActionButton(
-            onPressed: _pushAddTodoScreen,
+            onPressed: _pushAddTodoScreen, // Nút thêm công việc mới
             tooltip: 'Add task',
             child: Icon(Icons.add),
           ),

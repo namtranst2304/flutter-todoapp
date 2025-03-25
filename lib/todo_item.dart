@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 
-// Widget TodoItem kế thừa từ StatelessWidget
 class TodoItem extends StatelessWidget {
   final String todoText; // Văn bản công việc cần làm
-  final VoidCallback onRemove; // Hàm callback để xóa công việc
-  final VoidCallback onEdit; // Hàm callback để chỉnh sửa công việc
+  
+  // Hàm callback onRemove: Được kích hoạt khi nút xóa (với biểu tượng check) được nhấn.
+  // Nó cho phép widget cha xử lý việc xóa mục công việc.
+  final VoidCallback onRemove; 
 
-  const TodoItem({super.key, required this.todoText, required this.onRemove, required this.onEdit}); // Constructor
+  // Hàm callback onEdit: Được kích hoạt khi nút chỉnh sửa (với biểu tượng chỉnh sửa) được nhấn.
+  // Nó cho phép widget cha xử lý việc chỉnh sửa mục công việc.
+  final VoidCallback onEdit; 
+
+  // Constructor cho lớp TodoItem
+  const TodoItem({
+    super.key, // Truyền key cho constructor của lớp cha
+    required this.todoText, // Khởi tạo thuộc tính todoText với giá trị bắt buộc
+    required this.onRemove, // Khởi tạo callback onRemove với giá trị bắt buộc
+    required this.onEdit // Khởi tạo callback onEdit với giá trị bắt buộc
+  }); 
 
   @override
   Widget build(BuildContext context) {
