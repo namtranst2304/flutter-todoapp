@@ -1,30 +1,57 @@
 import 'package:flutter/material.dart';
-import 'todo_list.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'login_page.dart';
 
-// Hàm main khởi chạy ứng dụng Flutter
 void main() => runApp(TodoApp());
 
-class TodoApp extends StatelessWidget {
-  const TodoApp({super.key}); // super.key truyền key từ TodoApp đến lớp cha StatelessWidget
+class TodoApp extends StatefulWidget {
+  const TodoApp({super.key});
+
+  @override
+  _TodoAppState createState() => _TodoAppState();
+}
+
+class _TodoAppState extends State<TodoApp> {
+  late final AudioPlayer _player;
+  bool _isPlaying = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _player = AudioPlayer();
+    _playMusic();
+  }
+
+  void _playMusic() async {
+    try {
+      await _player.setReleaseMode(ReleaseMode.loop);
+      await _player.play(AssetSource('audio/background.mp3'));
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  void _toggleMusic() async {
+    if (_isPlaying) {
+      await _player.stop();
+    } else {
+      await _player.setReleaseMode(ReleaseMode.loop);
+      await _player.play(AssetSource('audio/background.mp3'));
+    }
+    setState(() {
+      _isPlaying = !_isPlaying;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    /*
-     * Trả về một MaterialApp với tiêu đề và widget TodoList
-     * MaterialApp là widget gốc của ứng dụng, cung cấp nhiều tính năng như điều hướng, chủ đề, và nhiều hơn nữa.
-     * debugShowCheckedModeBanner: false để ẩn banner debug.
-     * home: TodoList() đặt TodoList làm widget chính của ứng dụng.
-     */
     return MaterialApp(
       title: 'To-Do App',
       debugShowCheckedModeBanner: false,
-      home: TodoList(),
+      home: LoginPage(
+        isPlaying: _isPlaying,
+        toggleMusic: _toggleMusic,
+      ),
     );
   }
 }
-
-/*
- * Truyền key là việc cung cấp một giá trị key cho widget.
- * Key giúp Flutter xác định và theo dõi trạng thái của widget khi cấu trúc widget thay đổi.
- * Khi truyền super.key, key được truyền từ TodoApp đến lớp cha StatelessWidget.
- */

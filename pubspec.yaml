@@ -25,6 +25,7 @@ flutter:
   assets:
     - assets/background.jpg
     - assets/audio/background.mp3
+    # - assets/login_page.jpg
   uses-material-design: true
 
 flutter_icons:

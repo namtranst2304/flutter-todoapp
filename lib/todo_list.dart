@@ -6,10 +6,20 @@ import 'todo_item.dart'; // Import file todo_item.dart
 import 'completed_item.dart'; // Import file completed_item.dart
 import 'dart:ui'; // Thư viện giao diện người dùng
 import 'dart:convert'; // Thư viện mã hóa và giải mã JSON
+import 'login_page.dart'; // Import file login_page.dart
 
 // Widget TodoList kế thừa từ StatefulWidget
 class TodoList extends StatefulWidget {
-  const TodoList({super.key});
+  final String username; // Add username parameter
+  final bool isPlaying;
+  final VoidCallback toggleMusic;
+
+  const TodoList({
+    super.key,
+    required this.username,
+    required this.isPlaying,
+    required this.toggleMusic,
+  });
 
   @override
   TodoListState createState() => TodoListState();
@@ -20,12 +30,13 @@ class TodoListState extends State<TodoList> {
   final List<String> _todoItems = []; // Danh sách công việc cần làm
   final List<Map<String, dynamic>> _completedItems = []; // Danh sách công việc đã hoàn thành
   late final AudioPlayer _player; // Đối tượng phát nhạc
-  bool _isPlaying = true; // Trạng thái phát nhạc
+  late String _username; // Add username variable
 
   @override
   void initState() {
     super.initState();
     _player = AudioPlayer(); // Khởi tạo đối tượng phát nhạc
+    _username = widget.username; // Set username
     _loadData(); // Tải dữ liệu từ SharedPreferences
     _playMusic(); // Phát nhạc nền
   }
@@ -35,8 +46,8 @@ class TodoListState extends State<TodoList> {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       setState(() {
-        _todoItems.addAll(prefs.getStringList('todoItems') ?? []);
-        _completedItems.addAll((prefs.getStringList('completedItems') ?? []).map((item) => Map<String, dynamic>.from(jsonDecode(item))).toList());
+        _todoItems.addAll(prefs.getStringList('$_username-todoItems') ?? []);
+        _completedItems.addAll((prefs.getStringList('$_username-completedItems') ?? []).map((item) => Map<String, dynamic>.from(jsonDecode(item))).toList());
       });
     } catch (e) {
       // Xử lý lỗi
@@ -47,8 +58,8 @@ class TodoListState extends State<TodoList> {
   void _saveData() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('todoItems', _todoItems);
-      await prefs.setStringList('completedItems', _completedItems.map((item) => jsonEncode(item)).toList());
+      await prefs.setStringList('$_username-todoItems', _todoItems);
+      await prefs.setStringList('$_username-completedItems', _completedItems.map((item) => jsonEncode(item)).toList());
     } catch (e) {
       // Xử lý lỗi
     }
@@ -64,17 +75,18 @@ class TodoListState extends State<TodoList> {
     }
   }
 
-  // Hàm bật/tắt nhạc nền
-  void _toggleMusic() async {
-    if (_isPlaying) {
-      await _player.stop();
-    } else {
-      await _player.setReleaseMode(ReleaseMode.loop);
-      await _player.play(AssetSource('audio/background.mp3')); //đường dẫn file audio
-    }
-    setState(() {
-      _isPlaying = !_isPlaying;
-    });
+  // Hàm đăng xuất
+  void _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => LoginPage(
+          isPlaying: widget.isPlaying,
+          toggleMusic: widget.toggleMusic,
+        ),
+      ),
+    );
   }
 
   // Hàm thêm công việc mới
@@ -293,15 +305,21 @@ class TodoListState extends State<TodoList> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
-            onPressed: _toggleMusic, // Nút bật/tắt nhạc
+            onPressed: widget.toggleMusic, // Nút bật/tắt nhạc
             tooltip: 'Toggle Music',
-            child: Icon(_isPlaying ? Icons.music_note : Icons.music_off),
+            child: Icon(widget.isPlaying ? Icons.music_note : Icons.music_off),
           ),
           SizedBox(width: 16),
           FloatingActionButton(
             onPressed: _pushAddTodoScreen, // Nút thêm công việc mới
             tooltip: 'Add task',
             child: Icon(Icons.add),
+          ),
+          SizedBox(width: 16),
+          FloatingActionButton(
+            onPressed: _logout, // Nút đăng xuất
+            tooltip: 'Logout',
+            child: Icon(Icons.logout),
           ),
         ],
       ),
