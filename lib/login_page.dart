@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'audio_controller.dart';
 import 'todo_list.dart';
 
 class LoginPage extends StatefulWidget {
-  final bool isPlaying;
-  final VoidCallback toggleMusic;
+  final AudioController audioController;
 
   const LoginPage({
-    super.key,
-    required this.isPlaying,
-    required this.toggleMusic,
-  });
+    Key? key,
+    required this.audioController,
+  }) : super(key: key);
 
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -30,8 +29,7 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(
           builder: (context) => TodoList(
             username: _usernameController.text,
-            isPlaying: widget.isPlaying,
-            toggleMusic: widget.toggleMusic,
+            audioController: widget.audioController,
           ),
         ),
       );
@@ -96,52 +94,70 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isLogin ? 'Login' : 'Register')),
+      appBar: AppBar(
+        title: Text(
+          _isLogin ? 'Login' : 'Register',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 30,
+            fontWeight: FontWeight.bold
+          ),
+        ),
+        backgroundColor: const Color.fromARGB(255, 110, 119, 221).withAlpha(51),
+        elevation: 0,
+      ),
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/background.jpg"), // Hình nền
+            image: AssetImage("assets/background.jpg"),
             fit: BoxFit.cover,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextField(
-                controller: _usernameController,
-                decoration: InputDecoration(labelText: 'Username'),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextField(
+                    controller: _usernameController,
+                    decoration: InputDecoration(labelText: 'Username'),
+                  ),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(labelText: 'Password'),
+                    obscureText: true,
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _isLogin ? _login : _register,
+                    child: Text(_isLogin ? 'Login' : 'Register'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      if (_isLogin) {
+                        _showRegisterDialog();
+                      } else {
+                        setState(() {
+                          _isLogin = !_isLogin;
+                        });
+                      }
+                    },
+                    child: Text(_isLogin
+                        ? 'Create an account'
+                        : 'Already have an account? Login'),
+                  ),
+                ],
               ),
-              TextField(
-                controller: _passwordController,
-                decoration: InputDecoration(labelText: 'Password'),
-                obscureText: true,
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _isLogin ? _login : _register,
-                child: Text(_isLogin ? 'Login' : 'Register'),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (_isLogin) {
-                    _showRegisterDialog();
-                  } else {
-                    setState(() {
-                      _isLogin = !_isLogin;
-                    });
-                  }
-                },
-                child: Text(_isLogin ? 'Create an account' : 'Already have an account? Login'),
-              ),
-              FloatingActionButton(
-                onPressed: widget.toggleMusic,
-                tooltip: 'Toggle Music',
-                child: Icon(widget.isPlaying ? Icons.music_note : Icons.music_off),
-              ),
-            ],
-          ),
+            ),
+            Positioned(
+              bottom: 16,
+              right: 16,
+              // Sử dụng MusicButton từ audio_controller.dart
+              child: MusicButton(audioController: widget.audioController),
+            ),
+          ],
         ),
       ),
     );

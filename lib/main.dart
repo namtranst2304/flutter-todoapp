@@ -1,57 +1,53 @@
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'audio_controller.dart';
 import 'login_page.dart';
+import 'todo_list.dart';
 
-void main() => runApp(TodoApp());
-
-class TodoApp extends StatefulWidget {
-  const TodoApp({super.key});
-
-  @override
-  _TodoAppState createState() => _TodoAppState();
+void main() {
+  runApp(TodoApp());
 }
 
-class _TodoAppState extends State<TodoApp> {
-  late final AudioPlayer _player;
-  bool _isPlaying = true;
+class TodoApp extends StatelessWidget {
+  final AudioController _audioController = AudioController();
 
-  @override
-  void initState() {
-    super.initState();
-    _player = AudioPlayer();
-    _playMusic();
-  }
-
-  void _playMusic() async {
-    try {
-      await _player.setReleaseMode(ReleaseMode.loop);
-      await _player.play(AssetSource('audio/background.mp3'));
-    } catch (e) {
-      // Handle error
-    }
-  }
-
-  void _toggleMusic() async {
-    if (_isPlaying) {
-      await _player.stop();
-    } else {
-      await _player.setReleaseMode(ReleaseMode.loop);
-      await _player.play(AssetSource('audio/background.mp3'));
-    }
-    setState(() {
-      _isPlaying = !_isPlaying;
-    });
-  }
+  TodoApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'To-Do App',
       debugShowCheckedModeBanner: false,
-      home: LoginPage(
-        isPlaying: _isPlaying,
-        toggleMusic: _toggleMusic,
-      ),
+      //initialRoute: '/loginpage',
+      home: LoginPage(audioController: _audioController),
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/loginpage':
+            return MaterialPageRoute(
+              builder: (context) =>
+                  LoginPage(audioController: _audioController),
+            );
+          case '/todopage':
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args != null && args.containsKey('username')) {
+              return MaterialPageRoute(
+                builder: (context) => TodoList(
+                  username: args['username'],
+                  audioController: _audioController,
+                ),
+              );
+            }
+            // Nếu không có args hợp lệ, chuyển về trang login
+            return MaterialPageRoute(
+              builder: (context) =>
+                  LoginPage(audioController: _audioController),
+            );
+          default:
+            return MaterialPageRoute(
+              builder: (context) =>
+                  LoginPage(audioController: _audioController),
+            );
+        }
+      },
     );
   }
 }

@@ -1,95 +1,77 @@
-import 'package:flutter/material.dart'; // Thư viện Flutter Material Design
-import 'package:audioplayers/audioplayers.dart'; // Thư viện phát nhạc
-import 'package:shared_preferences/shared_preferences.dart'; // Thư viện lưu trữ dữ liệu đơn giản
-import 'package:intl/intl.dart'; // Thư viện định dạng ngày giờ
-import 'todo_item.dart'; // Import file todo_item.dart
-import 'completed_item.dart'; // Import file completed_item.dart
-import 'dart:ui'; // Thư viện giao diện người dùng
-import 'dart:convert'; // Thư viện mã hóa và giải mã JSON
-import 'login_page.dart'; // Import file login_page.dart
+import 'dart:convert';
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'login_page.dart';
+import 'audio_controller.dart';
+import 'todo_item.dart';
+import 'completed_item.dart';
 
-// Widget TodoList kế thừa từ StatefulWidget
 class TodoList extends StatefulWidget {
-  final String username; // Add username parameter
-  final bool isPlaying;
-  final VoidCallback toggleMusic;
+  final String username;
+  final AudioController audioController;
 
   const TodoList({
-    super.key,
+    Key? key,
     required this.username,
-    required this.isPlaying,
-    required this.toggleMusic,
-  });
+    required this.audioController,
+  }) : super(key: key);
 
   @override
   TodoListState createState() => TodoListState();
 }
 
-// State của TodoList
 class TodoListState extends State<TodoList> {
-  final List<String> _todoItems = []; // Danh sách công việc cần làm
-  final List<Map<String, dynamic>> _completedItems = []; // Danh sách công việc đã hoàn thành
-  late final AudioPlayer _player; // Đối tượng phát nhạc
-  late String _username; // Add username variable
+  final List<String> _todoItems = [];
+  final List<Map<String, dynamic>> _completedItems = [];
+  late String _username;
 
   @override
   void initState() {
     super.initState();
-    _player = AudioPlayer(); // Khởi tạo đối tượng phát nhạc
-    _username = widget.username; // Set username
-    _loadData(); // Tải dữ liệu từ SharedPreferences
-    _playMusic(); // Phát nhạc nền
+    _username = widget.username;
+    _loadData();
   }
 
-  // Hàm tải dữ liệu từ SharedPreferences
   void _loadData() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       setState(() {
         _todoItems.addAll(prefs.getStringList('$_username-todoItems') ?? []);
-        _completedItems.addAll((prefs.getStringList('$_username-completedItems') ?? []).map((item) => Map<String, dynamic>.from(jsonDecode(item))).toList());
+        _completedItems.addAll((prefs.getStringList('$_username-completedItems') ?? [])
+            .map((item) => Map<String, dynamic>.from(jsonDecode(item)))
+            .toList());
       });
     } catch (e) {
-      // Xử lý lỗi
+      // Xử lý lỗi nếu cần
     }
   }
 
-  // Hàm lưu dữ liệu vào SharedPreferences
   void _saveData() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('$_username-todoItems', _todoItems);
-      await prefs.setStringList('$_username-completedItems', _completedItems.map((item) => jsonEncode(item)).toList());
+      await prefs.setStringList('$_username-completedItems',
+          _completedItems.map((item) => jsonEncode(item)).toList());
     } catch (e) {
-      // Xử lý lỗi
+      // Xử lý lỗi nếu cần
     }
   }
 
-  // Hàm phát nhạc nền
-  void _playMusic() async {
-    try {
-      await _player.setReleaseMode(ReleaseMode.loop);
-      await _player.play(AssetSource('audio/background.mp3'));
-    } catch (e) {
-      // Xử lý lỗi
-    }
-  }
-
-  // Hàm đăng xuất
   void _logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('username');
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => LoginPage(
-          isPlaying: widget.isPlaying,
-          toggleMusic: widget.toggleMusic,
+          audioController: widget.audioController,
         ),
       ),
     );
   }
 
-  // Hàm thêm công việc mới
   void _addTodoItem(String task) {
     if (task.isNotEmpty) {
       setState(() {
@@ -99,7 +81,6 @@ class TodoListState extends State<TodoList> {
     }
   }
 
-  // Hàm chỉnh sửa công việc
   void _editTodoItem(int index, String newTask) {
     if (newTask.isNotEmpty) {
       setState(() {
@@ -109,7 +90,6 @@ class TodoListState extends State<TodoList> {
     }
   }
 
-  // Hàm xóa công việc ở todo list và chuyển sang completed list
   void _removeTodoItem(int index) {
     setState(() {
       _completedItems.add({
@@ -121,7 +101,6 @@ class TodoListState extends State<TodoList> {
     _saveData();
   }
 
-  // Hàm hoàn tác công việc đã hoàn thành
   void _undoCompletedItem(int index) {
     setState(() {
       _todoItems.add(_completedItems[index]['task']);
@@ -130,15 +109,6 @@ class TodoListState extends State<TodoList> {
     _saveData();
   }
 
-  // Hàm xóa công việc đã hoàn thành - for recovery testing
-  // void _removeCompletedItem(int index) {
-  //   setState(() {
-  //     _completedItems.removeAt(index);
-  //   });
-  //   _saveData();
-  // }
-
-  // Hiển thị hộp thoại xác nhận xóa công việc ở todo list
   void _promptRemoveTodoItem(int index) {
     showDialog(
       context: context,
@@ -163,7 +133,6 @@ class TodoListState extends State<TodoList> {
     );
   }
 
-  // Hiển thị hộp thoại chỉnh sửa công việc
   void _promptEditTodoItem(int index) {
     TextEditingController controller = TextEditingController(text: _todoItems[index]);
     showDialog(
@@ -193,7 +162,6 @@ class TodoListState extends State<TodoList> {
     );
   }
 
-  // Hiển thị màn hình thêm công việc mới
   void _pushAddTodoScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -217,7 +185,6 @@ class TodoListState extends State<TodoList> {
     );
   }
 
-  // Xây dựng danh sách công việc cần làm
   Widget _buildTodoList() {
     return ListView.builder(
       itemCount: _todoItems.length,
@@ -231,7 +198,6 @@ class TodoListState extends State<TodoList> {
     );
   }
 
-  // Xây dựng danh sách công việc đã hoàn thành
   Widget _buildCompletedList() {
     return ListView.builder(
       itemCount: _completedItems.length,
@@ -255,10 +221,10 @@ class TodoListState extends State<TodoList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(60), // Chiều cao của AppBar
+        preferredSize: Size.fromHeight(60),
         child: ClipRRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // Hiệu ứng làm mờ
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
               title: Text(
                 'TO DO LIST',
@@ -268,7 +234,7 @@ class TodoListState extends State<TodoList> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              backgroundColor: const Color.fromARGB(255, 110, 119, 221).withAlpha(51), // Màu nền AppBar
+              backgroundColor: const Color.fromARGB(255, 110, 119, 221).withAlpha(51),
               elevation: 0,
               centerTitle: true,
             ),
@@ -278,46 +244,43 @@ class TodoListState extends State<TodoList> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/background.jpg"), // Hình nền
+            image: AssetImage("assets/background.jpg"),
             fit: BoxFit.cover,
           ),
         ),
         child: Column(
           children: [
-            Expanded(child: _buildTodoList()), // Danh sách công việc cần làm
-            Divider(), // Đường kẻ phân cách
+            Expanded(child: _buildTodoList()),
+            Divider(),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
                 'Completed',
                 style: TextStyle(
-                  fontSize: 30, 
-                  fontWeight: FontWeight.bold, 
-                  color: Colors.indigo
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.indigo,
                 ),
               ),
             ),
-            Expanded(child: _buildCompletedList()), // Danh sách công việc đã hoàn thành
+            Expanded(child: _buildCompletedList()),
           ],
         ),
       ),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          FloatingActionButton(
-            onPressed: widget.toggleMusic, // Nút bật/tắt nhạc
-            tooltip: 'Toggle Music',
-            child: Icon(widget.isPlaying ? Icons.music_note : Icons.music_off),
-          ),
+          // Nút điều khiển nhạc sử dụng MusicButton từ audio_controller.dart
+          MusicButton(audioController: widget.audioController),
           SizedBox(width: 16),
           FloatingActionButton(
-            onPressed: _pushAddTodoScreen, // Nút thêm công việc mới
+            onPressed: _pushAddTodoScreen,
             tooltip: 'Add task',
             child: Icon(Icons.add),
           ),
           SizedBox(width: 16),
           FloatingActionButton(
-            onPressed: _logout, // Nút đăng xuất
+            onPressed: _logout,
             tooltip: 'Logout',
             child: Icon(Icons.logout),
           ),
